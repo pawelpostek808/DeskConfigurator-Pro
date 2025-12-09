@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useRef, Suspense, useEffect, useCallback } from 'react';
 import { 
   Ruler, 
@@ -33,7 +32,7 @@ import { OrbitControls, Stage, Grid, useFBX, Center, Environment, ContactShadows
 import * as THREE from 'three';
 import { jsPDF } from 'jspdf';
 import { DeskState, INITIAL_STATE, ProductOption, CatalogOverrides } from './types';
-import { supabase, uploadFile } from './supabaseClient';
+import { supabase, uploadFile, isSupabaseConfigured } from './supabaseClient';
 
 // --- DATA DEFINITION ---
 const CATALOG = {
@@ -795,6 +794,12 @@ export default function App() {
 
   // AUTO LOAD LATEST CONFIG ON START
   useEffect(() => {
+    // Only attempt to load if keys are configured
+    if (!isSupabaseConfigured) {
+      console.warn("Supabase not configured, skipping auto-load.");
+      return;
+    }
+
     const autoLoad = async () => {
       setIsUploading(true);
       try {
@@ -878,6 +883,11 @@ export default function App() {
   };
 
   const saveConfiguration = async () => {
+    if (!isSupabaseConfigured) {
+        alert("⛔ BŁĄD KONFIGURACJI: Aplikacja nie widzi kluczy Supabase.\n\nJeśli dodałeś zmienne w Netlify (Environment Variables), musisz PRZEBUDOWAĆ stronę, aby zadziałały.\n\nIdź do Netlify -> Deploys -> Trigger deploy -> Clear cache and deploy site.");
+        return;
+    }
+
     const name = prompt("Podaj nazwę konfiguracji:");
     if (!name) return;
     
@@ -907,6 +917,11 @@ export default function App() {
   };
 
   const loadConfigurations = async () => {
+    if (!isSupabaseConfigured) {
+        alert("⛔ BŁĄD KONFIGURACJI: Aplikacja nie widzi kluczy Supabase.\n\nJeśli dodałeś zmienne w Netlify (Environment Variables), musisz PRZEBUDOWAĆ stronę, aby zadziałały.\n\nIdź do Netlify -> Deploys -> Trigger deploy -> Clear cache and deploy site.");
+        return;
+    }
+
     setIsUploading(true);
     try {
       const { data, error } = await supabase
@@ -923,6 +938,8 @@ export default function App() {
       const msg = e.message || JSON.stringify(e);
       if (msg.includes('row-level security') || msg.includes('violates row-level security policy') || (e.code === '42501')) {
          alert("⛔ BŁĄD ODCZYTU (RLS)\n\nBaza danych blokuje odczyt tabeli 'configurations'.\n\nNAPRAWA: W panelu Supabase, dodaj politykę SELECT dla roli 'anon'.");
+      } else if (msg.includes('fetch') || msg.includes('Failed to fetch')) {
+          alert("⛔ BŁĄD POŁĄCZENIA\n\nPrawdopodobnie klucze API nie są poprawnie załadowane lub problem z siecią.\n\nSPRÓBUJ: Netlify -> Deploys -> Trigger deploy -> Clear cache and deploy site.");
       } else {
          alert("Błąd ładowania: " + msg);
       }

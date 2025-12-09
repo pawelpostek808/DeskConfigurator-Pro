@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 
 // Helper to safely access environment variables
@@ -17,8 +16,11 @@ const getEnv = (key: string) => {
 const SUPABASE_URL = getEnv('VITE_SUPABASE_URL');
 const SUPABASE_ANON_KEY = getEnv('VITE_SUPABASE_ANON_KEY');
 
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  console.error('⛔ BRAK KLUCZY SUPABASE! Upewnij się, że ustawiłeś zmienne VITE_SUPABASE_URL oraz VITE_SUPABASE_ANON_KEY w pliku .env.local lub w panelu Netlify.');
+// Sprawdzenie czy klucze są obecne (nie są puste i nie są undefined)
+export const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY && SUPABASE_URL !== 'undefined');
+
+if (!isSupabaseConfigured) {
+  console.error('⛔ BRAK KLUCZY SUPABASE! Upewnij się, że ustawiłeś zmienne VITE_SUPABASE_URL oraz VITE_SUPABASE_ANON_KEY w pliku .env.local lub w panelu Netlify. Jeśli już to zrobiłeś, zrób "Trigger deploy" -> "Clear cache and deploy site".');
 }
 
 // Create client with fallback values to prevent instant crash
@@ -29,8 +31,8 @@ export const supabase = createClient(
 
 export const uploadFile = async (file: File, bucket: 'models' | 'textures'): Promise<string | null> => {
   // Check if keys are present before attempting upload
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY || SUPABASE_URL === 'https://placeholder.supabase.co') {
-    alert("Brak konfiguracji połączenia z Supabase. Upewnij się, że klucze API są ustawione.");
+  if (!isSupabaseConfigured) {
+    alert("⛔ BŁĄD KONFIGURACJI: Aplikacja nie widzi kluczy Supabase.\n\nJeśli dodałeś zmienne w Netlify (Environment Variables), musisz PRZEBUDOWAĆ stronę, aby zadziałały.\n\nIdź do Netlify -> Deploys -> Trigger deploy -> Clear cache and deploy site.");
     return null;
   }
 
