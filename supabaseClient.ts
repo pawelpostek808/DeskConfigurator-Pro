@@ -1,23 +1,24 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Helper to safely access environment variables
-const getEnv = (key: string) => {
-  try {
-    // @ts-ignore
-    const env = import.meta?.env;
-    return env ? env[key] : '';
-  } catch (e) {
-    console.warn('Error accessing environment variables:', e);
+// W Vite zmienne środowiskowe muszą być pobierane BEZPOŚREDNIO (import.meta.env.NAZWA),
+// aby kompilator mógł je podmienić podczas budowania. Dynamiczny dostęp (env[key]) nie działa w produkcji.
+
+const getEnvVar = (key: string, value: string | undefined) => {
+  if (!value || value === 'undefined') {
     return '';
   }
+  return value;
 };
 
-// Pobieranie zmiennych środowiskowych (z pliku .env.local lub ustawień Netlify)
-const SUPABASE_URL = getEnv('VITE_SUPABASE_URL');
-const SUPABASE_ANON_KEY = getEnv('VITE_SUPABASE_ANON_KEY');
+// Pobieramy wartości wprost, używając rzutowania 'as any' by uniknąć błędów TS
+const rawUrl = (import.meta as any).env.VITE_SUPABASE_URL;
+const rawKey = (import.meta as any).env.VITE_SUPABASE_ANON_KEY;
 
-// Sprawdzenie czy klucze są obecne (nie są puste i nie są undefined)
-export const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY && SUPABASE_URL !== 'undefined');
+const SUPABASE_URL = getEnvVar('VITE_SUPABASE_URL', rawUrl);
+const SUPABASE_ANON_KEY = getEnvVar('VITE_SUPABASE_ANON_KEY', rawKey);
+
+// Sprawdzenie czy klucze są obecne
+export const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 
 if (!isSupabaseConfigured) {
   console.error('⛔ BRAK KLUCZY SUPABASE! Upewnij się, że ustawiłeś zmienne VITE_SUPABASE_URL oraz VITE_SUPABASE_ANON_KEY w pliku .env.local lub w panelu Netlify. Jeśli już to zrobiłeś, zrób "Trigger deploy" -> "Clear cache and deploy site".');
