@@ -1,12 +1,39 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = 'https://jgvhulcorlpdlpehppxn.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impndmh1bGNvcmxwZGxwZWhwcHhuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUyMjE0MTQsImV4cCI6MjA4MDc5NzQxNH0.x00DVyYkVLNJcBMjmZwS0bCCfjWEN9RyjwZmVbnXE48';
+// Helper to safely access environment variables
+const getEnv = (key: string) => {
+  try {
+    // @ts-ignore
+    const env = import.meta?.env;
+    return env ? env[key] : '';
+  } catch (e) {
+    console.warn('Error accessing environment variables:', e);
+    return '';
+  }
+};
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Pobieranie zmiennych środowiskowych (z pliku .env.local lub ustawień Netlify)
+const SUPABASE_URL = getEnv('VITE_SUPABASE_URL');
+const SUPABASE_ANON_KEY = getEnv('VITE_SUPABASE_ANON_KEY');
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  console.error('⛔ BRAK KLUCZY SUPABASE! Upewnij się, że ustawiłeś zmienne VITE_SUPABASE_URL oraz VITE_SUPABASE_ANON_KEY w pliku .env.local lub w panelu Netlify.');
+}
+
+// Create client with fallback values to prevent instant crash
+export const supabase = createClient(
+  SUPABASE_URL || 'https://placeholder.supabase.co', 
+  SUPABASE_ANON_KEY || 'placeholder'
+);
 
 export const uploadFile = async (file: File, bucket: 'models' | 'textures'): Promise<string | null> => {
+  // Check if keys are present before attempting upload
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY || SUPABASE_URL === 'https://placeholder.supabase.co') {
+    alert("Brak konfiguracji połączenia z Supabase. Upewnij się, że klucze API są ustawione.");
+    return null;
+  }
+
   try {
     // Sanitize filename: remove non-alphanumeric chars (keep dots/dashes), prepend timestamp
     const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
