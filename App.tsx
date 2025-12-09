@@ -416,7 +416,7 @@ const SceneContent = ({
   config: DeskState, 
   overrides: CatalogOverrides, 
   showDimensions: boolean, 
-  editMode: boolean,
+  editMode: boolean, 
   setOverrides: React.Dispatch<React.SetStateAction<CatalogOverrides>>,
   updateConfig: (key: keyof DeskState, value: any) => void,
   setMeasuredDimensions: (dim: {width: number, depth: number, centerOffset: [number, number]} | null) => void,
@@ -792,6 +792,38 @@ export default function App() {
   const elementInputRef = useRef<HTMLInputElement>(null);
   const textureInputRef = useRef<HTMLInputElement>(null);
   const controlsRef = useRef<any>(null);
+
+  // AUTO LOAD LATEST CONFIG ON START
+  useEffect(() => {
+    const autoLoad = async () => {
+      setIsUploading(true);
+      try {
+        const { data, error } = await supabase
+          .from('configurations')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          const record = data[0];
+          if (record.data) {
+             if (record.data.config) setConfig(record.data.config);
+             if (record.data.overrides) setOverrides(record.data.overrides);
+             console.log("Automatycznie wczytano najnowszą konfigurację:", record.name);
+          }
+        }
+      } catch (e) {
+        // Silent catch for auto-load to not disrupt UX if offline/RLS issues
+        console.log("Auto-load skipped or failed:", e);
+      } finally {
+        setIsUploading(false);
+      }
+    };
+
+    autoLoad();
+  }, []);
 
   const totalPrice = useMemo(() => {
     let total = 999; 
